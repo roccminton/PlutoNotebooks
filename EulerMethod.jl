@@ -56,7 +56,7 @@ $\frac{dP}{dt} = rP \left( 1- \frac{P}{K} \right)$
 
 # ╔═╡ 04fdd000-7b79-11eb-029b-b3765364f627
 md"""
-growth rate r $(@bind r Slider(0.01:0.01:1,show_value=true))
+growth rate r $(@bind r NumberField(0.0001:0.0001:0.1,default=0.01))
 
 carrying capacity K $(@bind K NumberField(1:10^7,default=10_000))
 """
@@ -97,12 +97,12 @@ ${\frac{dN_1}{dt} = N_1 (\varepsilon_1 - \gamma_1 N_2) \quad , \quad \frac{dN_2}
 # ╔═╡ 07b392ee-7b77-11eb-00be-876772164be8
 md"""
 Reproduktionsraten
-	ε₁ $(@bind ε₁ Slider(0.01:0.01:1,show_value=true))
-	ε₂ $(@bind ε₂ Slider(0.01:0.01:1,show_value=true))
+	ε₁ $(@bind ε₁ Slider(0.01:0.01:1,show_value=true, default=0.5))
+	ε₂ $(@bind ε₂ Slider(0.01:0.01:1,show_value=true, default=0.25))
 
 Sterberaten 
-	δ₁ $(@bind δ₁ Slider(0.01:0.01:1,show_value=true))
-	δ₂ $(@bind δ₂ Slider(0.01:0.01:1,show_value=true))
+	δ₁ $(@bind δ₁ Slider(0.01:0.01:1,show_value=true, default=0.07))
+	δ₂ $(@bind δ₂ Slider(0.01:0.01:1,show_value=true, default=0.07))
 """
 
 # ╔═╡ 7fc751be-7a96-11eb-207d-d5d0142f43ba
@@ -315,7 +315,7 @@ end
 # ╟─968af7ba-7c2a-11eb-0aa4-6d51510020b1
 # ╠═58e3898c-7c21-11eb-3364-9168fcedb22c
 # ╟─cbf8bba4-7c26-11eb-3301-07233740f82a
-# ╠═d1644026-7c27-11eb-17ae-67c414382cdc
+# ╟─d1644026-7c27-11eb-17ae-67c414382cdc
 # ╟─0ddf4fe6-7c28-11eb-2969-7b856ff408be
 # ╟─728d5546-7a96-11eb-1757-93681c4e7955
 # ╟─a7ec0730-7b76-11eb-31ec-fdb09304eb10
