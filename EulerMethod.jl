@@ -194,14 +194,14 @@ Here $\beta_{11}$ is the infection rate within group one, $\beta_{12}$ is the in
 # ╔═╡ cbf8bba4-7c26-11eb-3301-07233740f82a
 md"""
 
-β₁₁ = $(@bind β11 Slider(0.0:0.01:1.0, show_value=true)) |
-β₁₂ = $(@bind β12 Slider(0.0:0.01:1.0, show_value=true)) 
+β₁₁ = $(@bind β11 Slider(0.0:0.01:1.0, show_value=true, default=0.75)) |
+β₁₂ = $(@bind β12 Slider(0.0:0.01:1.0, show_value=true, default=0.5)) 
 
-β₂₁ = $(@bind β21 Slider(0.0:0.01:1.0, show_value=true)) |
-β₂₂ = $(@bind β22 Slider(0.0:0.01:1.0, show_value=true)) 
+β₂₁ = $(@bind β21 Slider(0.0:0.01:1.0, show_value=true, default=0.5)) |
+β₂₂ = $(@bind β22 Slider(0.0:0.01:1.0, show_value=true, default=0.75)) 
 
-γ₁ = $(@bind γ1 Slider(0.0:0.01:1.0, show_value=true)) |
-γ₂ = $(@bind γ2 Slider(0.0:0.01:1.0, show_value=true)) 
+γ₁ = $(@bind γ1 Slider(0.0:0.01:1.0, show_value=true, default=0.25)) |
+γ₂ = $(@bind γ2 Slider(0.0:0.01:1.0, show_value=true, default=0.25)) 
 
 """
 
