@@ -25,8 +25,8 @@ If everything worked out you should be redirected automatically to your standard
 
 The links to the Notebooks are
 
-    EulerMethod.jl - https://github.com/roccminton/PlutoNotebooks/blob/main/EulerMethod.jl
-    OneLocusTwoAlleles.jl - https://github.com/roccminton/PlutoNotebooks/blob/main/OneLocusTwoAlleles.jl
+* EulerMethod.jl - https://github.com/roccminton/PlutoNotebooks/blob/main/EulerMethod.jl
+* OneLocusTwoAlleles.jl - https://github.com/roccminton/PlutoNotebooks/blob/main/OneLocusTwoAlleles.jl
 
 ---
 # Further References
