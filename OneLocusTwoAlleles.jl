@@ -15,6 +15,12 @@ end
 
 # ╔═╡ 8491344a-7c39-11eb-327e-df48b337d147
 begin
+	import Pkg
+	
+	Pkg.add("Plots")
+	Pkg.add("PlutoUI")
+	Pkg.add("Measures")
+	
 	using Plots
 	using PlutoUI
 	using Measures
@@ -46,14 +52,45 @@ md"""
 ---
 ### One Locus, Two Alleles
 
-We describe a population where every individual is characterized by one locus only. There are two possible alleles 0 and 1, where 0 is the wildtype and 1 the mutated allele. Individuals who carry the mutated allel on both copies of the allele are thought to have a severe diseas, causing them to be excluded from the birth process. Individuals give birth and die at constant rates b, d. The carrying capacity Kₜ is time dependent and jumps at a certain point in time. Mutations appear at every birth at a constant rate μ from 0 to 1 only. The deterministic system can be described by the following system of non linear first order ODEs:
+We describe a population where every individual is characterized by one locus only. There are two possible alleles 0 and 1, where 0 is the wildtype and 1 the mutated allele. Individuals who carry the mutated allel on both copies of the allele are thought to have a severe diseas, causing them to be excluded from the birth process. Individuals give birth and die at constant rates $b, d$. The carrying capacity $K_{t}$ is time dependent and jumps at a certain point in time. The competition preassure between individuals is uniform $(b-d)/K_{t}$. Mutations appear at every birth at a constant rate $\mu$ from 0 to 1 only. The deterministic system can be described by the following system of non linear first order ODEs:
 
-${\frac{dX_{00}}{dt} = b (1-\mu) \frac{(X_{00}+\frac{1}{2}X_{01})^2}{X_{00}+X_{01}} - (d + c\Sigma)X_{00} }$ 
+${
+\frac{dX_{00}}{dt} = b 
+	\left(
+		(1-\mu) \frac{(X_{00}+\frac{1}{2}X_{01})^2}{X_{00}+X_{01}} 
+	\right)
+	- (d + c\Sigma)X_{00}
+		\phantom{
+			+ \mu  \frac{(X_{00}+\frac{1}{2}X_{01})X_{01}}{X_{00}+X_{01}} 
+			+ \mu^2  \frac{(X_{00}+\frac{1}{2}X_{01})^2}{X_{00}+X_{01}} 
+			}
+	\phantom{\Bigg(}
 
-${\frac{dX_{01}}{dt} = b \left((1-\mu) \frac{(X_{00}+\frac{1}{2}X_{01})X_{01}}{X_{00}+X_{01}} + \mu  \frac{(X_{00}+\frac{1}{2}X_{01})^2}{X_{00}+X_{01}} \right)- (d + c(\Sigma))X_{01} }$ 
+}$ 
 
-${\frac{dX_{11}}{dt} = b \left((1-\mu) \frac{\frac{1}{4}X_{01}^2}{X_{00}+X_{01}} + \mu  \frac{(X_{00}+\frac{1}{2}X_{01})X_{01}}{X_{00}+X_{01}} + \mu^2  \frac{(X_{00}+\frac{1}{2}X_{01})^2}{X_{00}+X_{01}} \right)- (d + c(\Sigma))X_{01} }$ 
+${
+\frac{dX_{01}}{dt} = b 
+	\left(
+		(1-\mu) \frac{(X_{00}+\frac{1}{2}X_{01})X_{01}}{X_{00}+X_{01}} 
+		+ \mu  \frac{(X_{00}+\frac{1}{2}X_{01})^2}{X_{00}+X_{01}} 
+	\right)
+	- (d + c\Sigma)X_{01} 
+	\phantom{
+			+ \mu^2  \frac{(X_{00}+\frac{1}{2}X_{01})^2}{X_{00}+X_{01}} 
+		}
+}$ 
 
+${
+\frac{dX_{11}}{dt} = b 
+	\left(
+		(1-\mu) \frac{\frac{1}{4}X_{01}^2}{X_{00}+X_{01}} 
+		+ \mu  \frac{(X_{00}+\frac{1}{2}X_{01})X_{01}}{X_{00}+X_{01}} 
+		+ \mu^2  \frac{(X_{00}+\frac{1}{2}X_{01})^2}{X_{00}+X_{01}} 
+	\right)
+	- (d + c\Sigma)X_{11} 
+}$ 
+
+where $\Sigma = X_{00} + X_{01} + X_{11}$ is the total population size.
 """
 
 # ╔═╡ 62311b66-7c3b-11eb-335c-c53b566fcb9f
@@ -62,9 +99,9 @@ begin
 		X₀₀, X₀₁, X₁₁ = (x for x ∈ X)
 		b, d, K, μ = (p for p ∈ P)
 		
-		N = sum(X)
-		M = N - X₁₁
-		D = d+((b-d)/K(t))*N
+		Σ = sum(X)
+		M = Σ - X₁₁
+		D = d+((b-d)/K(t))*Σ
 		
 		return [
 				(b * (1-μ)*(X₀₀+0.5*X₀₁)^2/M - D*X₀₀),
@@ -80,7 +117,7 @@ birth rate: $(@bind b Slider(0.0:0.1:1.0, show_value=true, default=1.0)) |
 death rate: $(@bind d Slider(0.0:0.1:1.0, show_value=true, default=0.9)) |
 
 initial population: $(@bind Kstart NumberField(1:10^7, default=500.0)) |
-final population: $(@bind Kend NumberField(1:10^7, default=10_000.0)) |
+carrying capacity: $(@bind Kend NumberField(1:10^7, default=10_000.0)) |
 burn in time: $(@bind tburn Slider(0:300,show_value=true,default=100))
 
 mutation rate: $(@bind μ NumberField(0.0:0.0001:0.2, default=0.001))
@@ -118,12 +155,12 @@ end;
 
 # ╔═╡ 619eab70-7c41-11eb-1fc0-fb3ec4e64220
 let
-	p_left = plot(framestyle=:zerolines,legend=:topleft,rightmargin=12mm,size=(680,400))
+	p_left = plot(framestyle=:zerolines,legend=:bottomleft,rightmargin=12mm,size=(680,400))
 	
 	plot!(p_left,T,mutation_load.(F),label="mutation load",color=:red)
 	
 	p_right = twinx()
-	plot!(p_right,framestyle=:zerolines,legend=:topright,grid=false)
+	plot!(p_right,framestyle=:zerolines,legend=:bottomright,grid=false)
 	plot!(p_right,T,ill_individual.(F),label="ill_individual",color=:orange)
 	
 	vline!(p_right,[T[end]],color=:black,label="")

@@ -63,7 +63,7 @@ carrying capacity K $(@bind K NumberField(1:10^7,default=10_000))
 
 # ╔═╡ dcffb046-7b78-11eb-333c-7df614c12617
 begin
-	LogisticGrowth(t,x) = r*x*(1-x/convert(Real,K))
+	LogisticGrowth(t,x) = r*x*(1-x/K)
 	LG_0 = 1.0
 end;
 
@@ -305,7 +305,7 @@ end
 # ╠═7fc751be-7a96-11eb-207d-d5d0142f43ba
 # ╟─07b392ee-7b77-11eb-00be-876772164be8
 # ╟─c080dd1a-7a96-11eb-345c-e364dc0f8ac9
-# ╠═62645b8c-7b7a-11eb-1b35-a3957a0252fb
+# ╟─62645b8c-7b7a-11eb-1b35-a3957a0252fb
 # ╟─4341adf4-7b7f-11eb-25c1-e546febcad3e
 # ╠═6b37eb20-7b7a-11eb-07de-a1042efa6721
 # ╟─fa94e89e-7c1e-11eb-08a7-91210bc2fe60
