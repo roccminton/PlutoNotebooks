@@ -15,11 +15,6 @@ end
 
 # ╔═╡ 728d5546-7a96-11eb-1757-93681c4e7955
 begin
-	import Pkg
-	
-	Pkg.add("PlutoUI")
-	Pkg.add("Plots")
-	
 	using PlutoUI
 	using Plots
 end
@@ -229,6 +224,14 @@ begin
 	]
 end;
 
+# ╔═╡ 66d0ef80-7d93-11eb-17cb-c14b5fdf383b
+let
+    import Pkg
+    Pkg.activate(".")
+    Pkg.add("PlutoUI")
+	Pkg.add("Plots")
+end
+
 # ╔═╡ a7ec0730-7b76-11eb-31ec-fdb09304eb10
 reshape_result(F) = [[f[i] for f ∈ F] for i ∈ 1:length(F[1])] ;
 
@@ -317,5 +320,6 @@ end
 # ╟─cbf8bba4-7c26-11eb-3301-07233740f82a
 # ╟─d1644026-7c27-11eb-17ae-67c414382cdc
 # ╟─0ddf4fe6-7c28-11eb-2969-7b856ff408be
-# ╟─728d5546-7a96-11eb-1757-93681c4e7955
+# ╠═66d0ef80-7d93-11eb-17cb-c14b5fdf383b
+# ╠═728d5546-7a96-11eb-1757-93681c4e7955
 # ╟─a7ec0730-7b76-11eb-31ec-fdb09304eb10
