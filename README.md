@@ -31,4 +31,5 @@ The links to the Notebooks are
 ---
 ## Further References
 
-For further informations on Pluto Notebooks I reccomend this talk from the 2020 JuliaCon: https://youtu.be/IAF8DjrQSSk 
+For further informations on Pluto Notebooks I reccomend a talk from the 2020 JuliaCon: https://youtu.be/IAF8DjrQSSk 
+and of course the Pluto Github page: https://github.com/fonsp/Pluto.jl
