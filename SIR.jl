@@ -85,13 +85,14 @@ with the following infection rate functions
 * Constant: $\beta(I)\equiv\beta$
 * Step Function: $\beta(I) = \beta (1 - \mathbb{1}_{[I_{c},\infty)}(I) (1-\frac{1}{r_s}))$
 * Logistic Decay: $\beta(I) = \frac{\beta}{1+\exp(r_l(I-I_c))}$
+* Inverse Proportional $\beta(I) = \beta - \frac{\beta}{I_c} I$
 
 where $I_c$ is the critical incidence at which the measurements stat and $r_s, r_f$ is the factor resp. rate at which the infection rate decreases.
 """
 
 # ╔═╡ 5e81dd2c-80b9-11eb-364e-63fa4ebd27da
 md"""
-Choice of Incidence Function $(@bind Β_name Select(["LogisticDecay", "StepFunction","Constant"]))
+Choice of Incidence Function $(@bind Β_name Select(["LogisticDecay", "StepFunction","Constant","InverseProportional"]))
 """
 
 # ╔═╡ 4f8dee16-80ba-11eb-1d0f-f3ecdc9ac671
@@ -111,6 +112,11 @@ elseif Β_name == "StepFunction"
 elseif Β_name == "Constant"
 	md"""
 	infection rate β $(@bind b Slider(0.0:0.01:1,show_value=true,default=0.7))
+	"""
+elseif Β_name == "InverseProportional"
+	md"""
+	maximum infection rate β $(@bind b Slider(0.0:0.01:1,show_value=true,default=0.7)) |
+	High incidence at $(@bind high_inc NumberField(0:1000,default=50)) per 10^5
 	"""
 else
 	md""
@@ -244,9 +250,11 @@ begin
 	StepFunction(I,N) = I/N >= high_inc/100_000 ? b/high_inc_f : b
 	LogisticDecay(I,N) = b / (1+exp(r_ld*(((I/N)*10^5-high_inc))))
 	Constant(I,N) = b
+	InverseProportional(I,N) = max(b - (b/high_inc)*(I/N)*10^5,0)
 	
 	function_choice = Dict(
 		"StepFunction" => StepFunction,
+		"InverseProportional" => InverseProportional,
 		"LogisticDecay" => LogisticDecay,
 		"Constant" => Constant
 	)
