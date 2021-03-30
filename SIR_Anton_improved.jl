@@ -112,11 +112,11 @@ md"""
 begin
 	function euler(f::Function,change_par!::Function,t0,tn,Δt,x₀,par)
 		T = t0:Δt:tn
-		F = Vector{typeof(x₀)}(undef,length(T))
-		F[1] = x₀
+		F = Matrix{eltype(x₀)}(undef,(length(T),length(x₀)))
+		F[1,:] = x₀
 		for (n,t) ∈ enumerate(T[2:end])
 			change_par!(par,t,F,n)
-			F[n+1] = F[n] + f(t,F,n,par) .* Δt
+			F[n+1,:] = F[n,:] + f(t,F,n,par) .* Δt
 		end
 		return F
 	end
@@ -124,8 +124,6 @@ begin
 	function no_change!(par,t,F,n) end
 	
 	euler(f::Function,t0,tn,Δt,x₀,par) = euler(f,no_change!,t0,tn,Δt,x₀,par)
-	
-	reshape_result(F) = [[f[i] for f ∈ F] for i ∈ 1:length(F[1])]
 end;
 
 # ╔═╡ 58f42866-9146-11eb-29ea-87830bc8db66
@@ -151,15 +149,15 @@ begin
 				par["rate of recovery"],par["rate of death of infected"],
 				par["total population"]
 			)
-	SIR_step(t,H,n,par::Dict) = SIR_step(t,H[n],par)
+	SIR_step(t,H,n,par::Dict) = SIR_step(t,H[n,:],par)
 end;
 
 # ╔═╡ a7ac774a-913b-11eb-267b-8f9841c44cb4
 begin
 	function SIR_step_2D(t,H,n,par₁::Dict,par₂::Dict,par_mix::Dict)
-		x₁,x₂ = view(H[n],1:4), view(H[n],5:8)	
+		x₁,x₂ = view(H,n,1:4), view(H,n,5:8)	
 		x = vcat(SIR_step(t,x₁,par₁),SIR_step(t,x₂,par₂))
-		return x .+ SIR_interaction(t,x₁,x₂,
+		return x + SIR_interaction(t,x₁,x₂,
 					par_mix["rate of infection 1 -> 2"],
 					par_mix["rate of infection 2 -> 1"],
 					par₁["total population"],par₂["total population"])
@@ -182,26 +180,24 @@ md"""
 
 # ╔═╡ 16a50518-906d-11eb-1e2b-3faa1765f30c
 begin
-	#Calculates the within the simulation
-	function incidence(F::Array{Array{Float64,1},1},t,pop_size;ndays=7,scale=100_000)
+	#Calculates at one time within the simulation
+	function incidence(nI,t,pop_size;ndays=7,scale=100_000)
 		#set starting time in range
 		t₀ = max(t-round(Int,ndays/Δt),1)
 		#return Incidence
-		return (F[t][5] - F[t₀][5]) .* (scale/pop_size)
+		return (nI[t] - nI[t₀]) .* (scale/pop_size)
 	end
 
 	
-	#Calculates after reshapeing of the result
-	incidence(new_cases::Array{Float64,1},t₀,ndays) = new_cases[t₀+ndays] - new_cases[t₀]
-	
-	function incidence(new_cases::Array{Float64,1},pop_size;ndays=7,scale=100_000)
+	#Calculates for all times after simulation
+	function incidence(nI,pop_size;ndays=7,scale=100_000)
 		#rescale days
 		ndays = round(Int,ndays/Δt)
 		#sum new cases in first days
-		I = new_cases[1:ndays]
+		I = nI[1:ndays]
 		#iterate and add incidence
-		for t₀ ∈ 1:length(new_cases)-ndays
-			append!(I,incidence(new_cases,t₀,ndays))
+		for t₀ ∈ 1:length(nI)-ndays
+			append!(I,nI[t₀+ndays] - nI[t₀])
 		end
 		#scale and return
 		return I .* scale/pop_size
@@ -222,7 +218,7 @@ begin
 	#Dependency of rate of recovery on incidence
 	function incidence_dependent_recovery_rate!(par,t,F,n)
 		if n > par["delay"]
-			i = incidence(F,n-par["delay"],par["total population"])
+			i = incidence(view(F,:,5),n-par["delay"],par["total population"])
 			if i > par["high incidence"]
 				par["rate of recovery"] = par["original recovery rate"]*par["high factor"]
 			end
@@ -253,15 +249,13 @@ begin
 		x₀,
 		parameter_incidence_dependent_recovery_rate
 		)
-	
-	result = reshape_result(result)
 end;
 
 # ╔═╡ 3d9185a6-908c-11eb-301c-358ed4a3eb37
 let
 	p = plot(framestlye=:zerolines,size=(680,450))
 
-	plot!(p, 0.0:Δt:T,result[1:4],
+	plot!(p, 0.0:Δt:T,result[:,1:4],
 		label = ["S" "I" "R" "D"],
 		color = [:blue :red :green :yellow],
 		xlabel = "Days",
@@ -273,7 +267,7 @@ end
 let
 	p = plot(framestlye=:zerolines,size=(680,450))
 
-	plot!(p, 0.0:Δt:T,result[5],
+	plot!(p, 0.0:Δt:T,result[:,5],
 		label = "I",
 		color = :blue ,
 		xlabel = "Days",
@@ -287,7 +281,7 @@ end
 let
 	p = plot(framestlye=:zerolines,size=(680,450))
 
-	I = incidence(result[5],parameter["total population"])
+	I = incidence(result[:,5],parameter["total population"])
 
 	plot!(p, 0.0:Δt:T,I,
 		label = "I",
