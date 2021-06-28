@@ -37,10 +37,12 @@ begin
 		F = Vector{typeof(x₀)}(undef,length(T))
 		F[1] = x₀
 		for (n,t) ∈ enumerate(T[2:end])
-			F[n+1] = F[n] .+ f(t,F[n]) .* Δt
+			F[n+1] = F[n] .+ f(F[n]) .* Δt
 		end
 		return F
 	end
+	
+	close(f,par) = x -> f(x,par...)
 	
 	reshape_result(F) = [[f[i] for f ∈ F] for i ∈ 1:length(F[1])] ;
 end
@@ -58,18 +60,18 @@ $\frac{dP}{dt} = rP \left( 1- \frac{P}{K} \right)$
 
 """
 
+# ╔═╡ dcffb046-7b78-11eb-333c-7df614c12617
+begin
+	LogisticGrowth(x,K,r) = r*x*(1-x/K)
+	LG_0 = 1.0
+end;
+
 # ╔═╡ 04fdd000-7b79-11eb-029b-b3765364f627
 md"""
 growth rate r $(@bind r NumberField(0.0001:0.0001:0.1,default=0.01))
 
 carrying capacity K $(@bind K NumberField(1:10^7,default=10_000))
 """
-
-# ╔═╡ dcffb046-7b78-11eb-333c-7df614c12617
-begin
-	LogisticGrowth(t,x) = r*x*(1-x/K)
-	LG_0 = 1.0
-end;
 
 # ╔═╡ 5b3c4954-7b79-11eb-11ba-57b8ae51a6f5
 let
@@ -78,7 +80,7 @@ let
 	p = plot(framestlye=:zerolines,legend=:topleft)
 	
 	T=0:Δt:2500
-	F = euler(LogisticGrowth,T[1],T[end],Δt,LG_0)
+	F = euler(close(LogisticGrowth,[K,r]),T[1],T[end],Δt,LG_0)
 	plot!(p,T,F,label="Population Size")
 	
 	p
@@ -98,6 +100,15 @@ ${\frac{dN_1}{dt} = N_1 (\varepsilon_1 - \gamma_1 N_2) \quad , \quad \frac{dN_2}
 
 """
 
+# ╔═╡ 7fc751be-7a96-11eb-207d-d5d0142f43ba
+begin
+	LotkaVolterra(x,ε₁,δ₁,ε₂,δ₂) = [
+			x[1]*(ε₁-δ₁*x[2]),
+			-x[2]*(ε₂-δ₂*x[1])
+	]
+	LV_0 = [10.0,10.0]
+end;
+
 # ╔═╡ 07b392ee-7b77-11eb-00be-876772164be8
 md"""
 Reproduktionsraten
@@ -109,15 +120,6 @@ Sterberaten
 	δ₂ $(@bind δ₂ Slider(0.01:0.01:1,show_value=true, default=0.07))
 """
 
-# ╔═╡ 7fc751be-7a96-11eb-207d-d5d0142f43ba
-begin
-	LotkaVolterra(t,x) = [
-			x[1]*(ε₁-δ₁*x[2]),
-			-x[2]*(ε₂-δ₂*x[1])
-	]
-	LV_0 = [10.0,10.0]
-end;
-
 # ╔═╡ c080dd1a-7a96-11eb-345c-e364dc0f8ac9
 let
 	Δt = 0.01
@@ -125,7 +127,7 @@ let
 	p = plot(framestlye=:zerolines)
 	
 	T=0:Δt:100
-	F = euler(LotkaVolterra,T[1],T[end],Δt,LV_0)
+	F = euler(close(LotkaVolterra,[ε₁,δ₁,ε₂,δ₂]),T[1],T[end],Δt,LV_0)
 	plot!(p,T,reshape_result(F),label=["N₁" "N₂"])
 	
 	p
@@ -148,18 +150,9 @@ ${\frac{dR}{dt} = \gamma I - \mu R \phantom{-\beta \frac{SI}{N}}}$
 
 """
 
-# ╔═╡ e64e9d62-7b7b-11eb-3620-a7a57b954fcc
-md"""
-recovery rate γ $(@bind γ Slider(0.0:0.01:1,show_value=true,default=0.15)) | 
-infection rate β $(@bind β Slider(0.0:0.01:1,show_value=true,default=0.7))
-
-death rate μ $(@bind μ Slider(0.0:0.01:1,show_value=true)) |
-birth rate ν $(@bind ν Slider(0.0:0.01:1,show_value=true))
-"""
-
 # ╔═╡ 6b37eb20-7b7a-11eb-07de-a1042efa6721
 begin
-	function SIR(t,x)
+	function SIR(x,ν,β,μ,γ)
 		N = sum(x)
 		S, I, R = x[1], x[2], x[3]
 		return [
@@ -175,9 +168,18 @@ begin
 	T=0:Δt:150
 end;
 
+# ╔═╡ e64e9d62-7b7b-11eb-3620-a7a57b954fcc
+md"""
+recovery rate γ $(@bind γ Slider(0.0:0.01:1,show_value=true,default=0.15)) | 
+infection rate β $(@bind β Slider(0.0:0.01:1,show_value=true,default=0.7))
+
+death rate μ $(@bind μ Slider(0.0:0.01:1,show_value=true)) |
+birth rate ν $(@bind ν Slider(0.0:0.01:1,show_value=true))
+"""
+
 # ╔═╡ fa94e89e-7c1e-11eb-08a7-91210bc2fe60
 begin
-	F = euler(SIR,T[1],T[end],Δt,SIR_0)
+	F = euler(close(SIR,[ν,β,μ,γ]),T[1],T[end],Δt,SIR_0)
 	rF = reshape_result(F)
 	N = sum.(F)
 end;
@@ -199,16 +201,16 @@ end
 # ╟─e9b52262-7b7d-11eb-21aa-2bf0d9f5ef50
 # ╠═dcffb046-7b78-11eb-333c-7df614c12617
 # ╟─04fdd000-7b79-11eb-029b-b3765364f627
-# ╟─5b3c4954-7b79-11eb-11ba-57b8ae51a6f5
+# ╠═5b3c4954-7b79-11eb-11ba-57b8ae51a6f5
 # ╟─7a010972-7b78-11eb-3478-f1fbc1f0645d
 # ╟─b963fdb2-7b7e-11eb-3184-1b216f77bd64
 # ╠═7fc751be-7a96-11eb-207d-d5d0142f43ba
 # ╟─07b392ee-7b77-11eb-00be-876772164be8
-# ╟─c080dd1a-7a96-11eb-345c-e364dc0f8ac9
+# ╠═c080dd1a-7a96-11eb-345c-e364dc0f8ac9
 # ╟─62645b8c-7b7a-11eb-1b35-a3957a0252fb
 # ╟─4341adf4-7b7f-11eb-25c1-e546febcad3e
 # ╠═6b37eb20-7b7a-11eb-07de-a1042efa6721
-# ╟─fa94e89e-7c1e-11eb-08a7-91210bc2fe60
+# ╠═fa94e89e-7c1e-11eb-08a7-91210bc2fe60
 # ╟─e64e9d62-7b7b-11eb-3620-a7a57b954fcc
 # ╟─68f66db2-7b7c-11eb-138d-2f40b3bfbb4e
 # ╟─728d5546-7a96-11eb-1757-93681c4e7955
