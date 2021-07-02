@@ -25,10 +25,12 @@ md"""
 
 The **SIRD Model** has been developed to simulate an epidemic over time. The model consists of a system of 4 differential equations that express the rates of change of 4 variables over time. The 4 variables are:
 
-1. **S** - the susceptibles of getting the infection
-2. **I** - the infected
-3. **R** - the recovered from the infection
-4. **D** - the number of dead
+${ \begin{align*}
+	S & - \text{the susceptibles of getting the infection} \\
+	I & - \text{the infected} \\
+	R & - \text{the recovered from the infection} \\
+	D & - \text{the number of dead}
+\end{align*} }$
 
 #### The Model
 Define the parameters of the dynamics as follows:
@@ -53,7 +55,7 @@ To model two mixing populations with independent parameters double the system an
 
 ${ \pm \beta_{ij} \frac{S_j\cdot I_i}{N_i + N_j} }$
 
-to the number of infected resp. susceptible individuals. This term models the infection from Population $ i $ to Population $ j $, for $ i,j = 1,2$.
+to the number of infected resp. susceptible individuals. This term models the infection from Population \\( i \\) to Population \\( j \\), for \\( i,j = 1,2\\).
 
 Finally to randomize the dynamics of the system in every step, all quantities that move between within the system get drawn from a Poisson distribution with the respective rate as mean.
 
