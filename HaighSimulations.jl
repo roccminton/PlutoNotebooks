@@ -66,6 +66,10 @@ function mean_extinction_time(Fit,J,n_runs)
 	end
 end
 
+# ╔═╡ 501f9caf-f954-4678-9d26-84e177e97013
+#Gives the relative frequency of populations where untile time t J fittest populations did die out for Pₙ(τᴶ>t) 
+extinction_prob(Fit,J,t,n_runs) = (n_runs - Fit[t,J+1])/n_runs
+
 # ╔═╡ f7774f00-e2a0-4014-a27a-5515b7b1a463
 md"""
 ---
@@ -208,9 +212,6 @@ md"##### Mean over $(n_runs) Simulations"
 # ╔═╡ c485f4a0-ce6e-4eb8-b968-b737bd347bea
 mean_extinction_time(Fit,0,n_runs)
 
-# ╔═╡ 3a514225-a4a5-4e94-a376-b002151a536c
-N_mean*exp(-λ_mean/s_mean)
-
 # ╔═╡ bb65123e-7815-4a5a-923b-567e59af475a
 function fittestclass(extimes,t) 
 	exs = findfirst([ex > t for ex in extimes])
@@ -290,6 +291,40 @@ begin
 		title = "Theoretical Equilibrium Sizes"
 	)
 end
+
+# ╔═╡ 23f0b75e-6f0d-47de-93f4-b7fd992c1211
+function recurrence(f,init,n_end)
+	res = [f(init)]
+	for i ∈ 1:n_end-1
+		push!(res,f(res[end]))
+	end
+	return res
+end
+
+# ╔═╡ e25b2e0a-94cb-49c2-a069-503f0407f68e
+#some important functions
+begin
+	#probability generating function of Poi(m)
+	f(x,m) = exp(m*(x-1))
+	#mean of offspring distribution for poisson branching process
+	m(s,J) = 1/(1-s)^J
+	#equilibrium population size of fittest class
+	n₀(N,λ,s) = N*exp(-λ/s)
+	#deterministic time to reestablish equilibrium
+	d(λ,s) = -log(λ/s)/log(1-s)
+end
+
+# ╔═╡ 53f4aff2-cfda-4408-b57f-40805a82d25d
+a = recurrence(x->f(x,m(s_mean,0)),0,1000) .^ n₀(N_mean,λ_mean,s_mean)
+
+# ╔═╡ 3d0fc2ac-5d08-4592-872b-36ee2d3a01d1
+plot([[extinction_prob(Fit,0,t,n_runs) for t in 1:1000],a])
+
+# ╔═╡ 3a514225-a4a5-4e94-a376-b002151a536c
+n₀(N_mean,λ_mean,s_mean)
+
+# ╔═╡ 645c06f2-67c2-49fa-b4b0-551a0d7c98bd
+d(λ_mean,s_mean)
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -1325,11 +1360,15 @@ version = "0.9.1+5"
 # ╟─6a093cb7-6834-4ef6-86cb-7abc92327ff3
 # ╟─50acd1e1-d03f-4cbb-a1d3-7d8c55fdc0b6
 # ╠═31952d34-df98-4369-bc1e-be11abd7c307
-# ╠═046db000-4257-47bc-9e9c-d47c2bfd15bf
+# ╠═3d0fc2ac-5d08-4592-872b-36ee2d3a01d1
+# ╠═53f4aff2-cfda-4408-b57f-40805a82d25d
 # ╠═c485f4a0-ce6e-4eb8-b968-b737bd347bea
 # ╠═3a514225-a4a5-4e94-a376-b002151a536c
+# ╠═645c06f2-67c2-49fa-b4b0-551a0d7c98bd
 # ╟─f7774f00-e2a0-4014-a27a-5515b7b1a463
 # ╠═4b35680a-1310-11ed-29fa-3501f54a3932
+# ╠═501f9caf-f954-4678-9d26-84e177e97013
+# ╠═046db000-4257-47bc-9e9c-d47c2bfd15bf
 # ╠═613db540-e773-413f-80ab-633113db3cff
 # ╠═02a23239-61db-4e8a-965f-2388430d2ff5
 # ╠═d60f0c8e-2756-4ad7-a63e-0740c47999f1
@@ -1339,5 +1378,7 @@ version = "0.9.1+5"
 # ╠═0a49f851-4a58-4545-877a-f452bb2e47bf
 # ╠═bb65123e-7815-4a5a-923b-567e59af475a
 # ╠═cee0add3-1172-4247-a2d0-c702e87df32a
+# ╠═23f0b75e-6f0d-47de-93f4-b7fd992c1211
+# ╠═e25b2e0a-94cb-49c2-a069-503f0407f68e
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
