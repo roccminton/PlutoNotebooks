@@ -9,6 +9,7 @@ begin
 	using Plots
 	using PlutoUI
 	using Distributions
+	using BenchmarkTools
 end
 
 # ╔═╡ 7b294d56-3fcf-11ed-00d4-f98e86e1e58f
@@ -31,18 +32,27 @@ $\mathbf{Y} = [Y_a,Y_A]$
 
 Moreover we have to adjust the population size $N$, since we have $2N$ alleles in the second model. We hope that on average we see that
 
-$\mathbf{X} = \left[Y_{a}^2,2Y_aY_A,Y_{A}^2\right]$
+$\mathbf{X} = \frac{1}{4N} \left[Y_{a}^2,2Y_aY_A,Y_{A}^2\right]$
 
 or equivalently
 
 $\mathbf{Y} = \left[2X_{aa}+X_{aA},X_{aA}+2X_{AA} \right]$
 """
 
-# ╔═╡ 8384d9a6-db9d-450e-ba0b-447fccd88952
-#plot_WF(convertmatrix(disttoHW,X[:,2:end]))
+# ╔═╡ e2fcc12b-e8d4-4d9e-b519-dfa916f3a017
+@benchmark run_wright_fisher(X₀,t_end,haploid_WF_step!)
 
-# ╔═╡ ce7c91f2-8e31-46c3-af17-113597140ea2
-#plot_WF(convertmatrix(disttoHW,Y[:,2:end]))
+# ╔═╡ 170b959a-9cb9-4889-9cb1-ffef6fa26478
+@benchmark run_wright_fisher(X₀,t_end,multinomial_WF_step!)
+
+# ╔═╡ 42cea0d9-d225-4a74-9d06-67ee35bc1d28
+md"""
+#### Conclusion
+
+We see that a diploid Wright Fisher model can be simulated in two ways without alterning the behavior of the population. Both the $\textbf{individual-based}$ and the $\textbf{allel-based}$ approach yield identical results. Obviously one can calculate the allele frequencies directly from a type distribution (uniquely!). On the other hand we see that it is possible to sample the individual distribution from a conditional multinomial distribution without loss of information.
+
+Hence a diploid Wright-Fisher model can be simulated as a haploid allel-based model and converted back to a diploid model at any given time without affecting the outcome of the simulation. 
+"""
 
 # ╔═╡ 654f5bf0-007c-4089-8b89-2ccd5986b0ab
 md"""
@@ -120,6 +130,21 @@ begin
 	end
 end
 
+# ╔═╡ fc913750-c133-4335-a131-367f149584cf
+function sampleind(a,A)
+	#have to have a even number 2n = a+A
+	isodd(a+A) && return fill(nothing,3)
+	
+	n = Integer((a+A)/2)
+	M = Multinomial(n,[a^2,2a*A,A^2] ./ 4n^2)
+	#Acceptance Rejection Sampling
+	S = rand(M)
+	while 2*S[1]+S[2] != a
+		S = rand(M)
+	end
+	return S
+end
+
 # ╔═╡ bea3e21e-7c3f-4783-a52c-d280287f0343
 begin
 	function altoind(a,A)
@@ -144,12 +169,14 @@ begin
 	N = 1000000
 	t_end = 100000
 	
-	X₀ = rand(Multinomial(N,[1/3,1/3,1/3]))
+	θ = rand()
+	
+	X₀ = round.(Integer,N.*[θ^2,2θ*(1-θ),(1-θ)^2])
 	Y₀ = indtoal(X₀)
 end;
 
 # ╔═╡ 1d8ae806-a781-4d76-987c-2cabcf300682
-Y = run_wright_fisher(X₀,t_end,multinomial_WF_step!)
+Y = run_wright_fisher(X₀,t_end,haploid_WF_step!)
 
 # ╔═╡ 3dcb7f6c-c17a-4e84-92f0-d0f1b492c0c5
 plot_WF(Y)
@@ -160,20 +187,47 @@ X = run_wright_fisher(X₀,t_end,multinomial_WF_step!)
 # ╔═╡ a150a1ad-9789-4907-a66b-223b8a258bd3
 plot_WF(X)
 
+# ╔═╡ 0c2dd4f7-c12c-43b0-b244-fcb4706b8f82
+begin
+	n = 10^4
+
+	H = [sampleind(Y₀...) for _ in 1:n]
+	
+	aa = [Y[1] for Y in H]
+	aA = [Y[2] for Y in H]
+	AA = [Y[3] for Y in H]
+end;
+
+# ╔═╡ 6eaf79a0-569f-4461-90c7-f546db8cdbc2
+begin
+	δ = ceil(Integer,max(max(aa...) - min(aa...),max(aA...) - min(aA...),max(AA...) - min(AA...)) * 0.55)
+
+	haa = histogram(aa,xlim=(X₀[1]-δ,X₀[1]+δ),legend=false,title="aa")
+	vline!([X₀[1]],lw=5)
+	haA = histogram(aA,xlim=(X₀[2]-δ,X₀[2]+δ),legend=false,title="aA")
+	vline!([X₀[2]],lw=5)
+	hAA = histogram(AA,xlim=(X₀[3]-δ,X₀[3]+δ),legend=false,title="AA")
+	vline!([X₀[3]],lw=5)
+
+	plot(haa,haA,hAA,layout=(1,3),size=(1000,200))
+end
+
 # ╔═╡ ef75509f-6534-4a78-81d5-171e365b7282
 begin
-	isHW(X::Array) = iszero(disttoHW(X))
+	isHW(X::Array) = all(isapprox.(disttoHW(X),0.0,atol=1))
 	disttoHW(X::Array) = altoind(indtoal(X)) .- X
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 
 [compat]
+BenchmarkTools = "~1.3.1"
 Distributions = "~0.25.75"
 Plots = "~1.34.3"
 PlutoUI = "~0.7.43"
@@ -197,6 +251,12 @@ uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
 
 [[Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
+
+[[BenchmarkTools]]
+deps = ["JSON", "Logging", "Printf", "Profile", "Statistics", "UUIDs"]
+git-tree-sha1 = "4c10eee4af024676200bc7752e536f858c6b8f93"
+uuid = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+version = "1.3.1"
 
 [[BitFlags]]
 git-tree-sha1 = "84259bb6172806304b9101094a7cc4bc6f56dbc6"
@@ -765,6 +825,10 @@ version = "1.3.0"
 deps = ["Unicode"]
 uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 
+[[Profile]]
+deps = ["Printf"]
+uuid = "9abbd945-dff8-562f-b5e8-e1ebf5ef1b79"
+
 [[Qt5Base_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "Fontconfig_jll", "Glib_jll", "JLLWrappers", "Libdl", "Libglvnd_jll", "OpenSSL_jll", "Pkg", "Xorg_libXext_jll", "Xorg_libxcb_jll", "Xorg_xcb_util_image_jll", "Xorg_xcb_util_keysyms_jll", "Xorg_xcb_util_renderutil_jll", "Xorg_xcb_util_wm_jll", "Zlib_jll", "xkbcommon_jll"]
 git-tree-sha1 = "c6c0f690d0cc7caddb74cef7aa847b824a16b256"
@@ -1179,16 +1243,20 @@ version = "1.4.1+0"
 # ╟─0baf862c-58d4-4d20-876e-912914e902bf
 # ╟─e598fc50-ff9c-4f7b-87bc-a19fcc375cb2
 # ╠═4e127249-f03a-4e27-b5c7-5954799d08e0
-# ╠═8384d9a6-db9d-450e-ba0b-447fccd88952
-# ╠═ce7c91f2-8e31-46c3-af17-113597140ea2
 # ╠═a150a1ad-9789-4907-a66b-223b8a258bd3
 # ╠═3dcb7f6c-c17a-4e84-92f0-d0f1b492c0c5
 # ╠═1d8ae806-a781-4d76-987c-2cabcf300682
+# ╟─e2fcc12b-e8d4-4d9e-b519-dfa916f3a017
 # ╠═a7e35223-b4e3-494f-954d-1f4ef09caac0
+# ╟─170b959a-9cb9-4889-9cb1-ffef6fa26478
+# ╠═0c2dd4f7-c12c-43b0-b244-fcb4706b8f82
+# ╟─6eaf79a0-569f-4461-90c7-f546db8cdbc2
+# ╟─42cea0d9-d225-4a74-9d06-67ee35bc1d28
 # ╟─654f5bf0-007c-4089-8b89-2ccd5986b0ab
 # ╠═5983504b-3bdf-4efb-ba94-44bf5efe9074
 # ╠═73c5ff5d-facd-40cd-9468-d12746a173a8
 # ╠═b389aff2-9ba7-4108-b9fd-aee656c823fb
+# ╠═fc913750-c133-4335-a131-367f149584cf
 # ╠═ef75509f-6534-4a78-81d5-171e365b7282
 # ╠═bea3e21e-7c3f-4783-a52c-d280287f0343
 # ╠═442d7a0f-ebff-46ac-aac1-2a720753baa1
