@@ -16,6 +16,18 @@ One can pass additional arguments to specify which digits have to be contained a
 
 """
 
+# ╔═╡ b0d9e534-fda6-425d-8e37-74ba246c0ee5
+function emptyintersect(S,T)
+	P = Set()
+
+	for s in S
+		for t in T
+			isempty(s∩t) && push!(P,(s,t))
+		end
+	end
+	return P
+end
+
 # ╔═╡ f9b881bb-ea63-4424-8872-8383f6412f29
 begin
 	function maxsum(ndigits)
@@ -75,16 +87,9 @@ begin
 	sums(res,digits,c::Vector,not=false) = sums(res,digits,Set(c),not)
 end
 
-# ╔═╡ f4a24a2c-0929-45f6-8ce0-69f21dc70e96
-sums(22,3)
-
-# ╔═╡ 10fd280d-fcfc-4519-87f9-71147be53cc3
-sums(11,2,[8,4,1,7],true)
-
 # ╔═╡ Cell order:
 # ╟─463cb478-327b-431f-a2f9-af2da22d1a24
 # ╟─f1678f15-2c97-4048-b544-0236622f2388
-# ╠═f4a24a2c-0929-45f6-8ce0-69f21dc70e96
-# ╠═10fd280d-fcfc-4519-87f9-71147be53cc3
+# ╠═b0d9e534-fda6-425d-8e37-74ba246c0ee5
 # ╠═9fd7d9b9-f1c9-4a97-8241-7835fdb7f5aa
 # ╠═f9b881bb-ea63-4424-8872-8383f6412f29
