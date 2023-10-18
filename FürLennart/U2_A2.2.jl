@@ -20,13 +20,28 @@ k(ε) = abs(r₁(ε)-1)/ε
 Ε = [10.0^(-n) for n in 2:2:12]
 
 # ╔═╡ de9c6737-088d-4d86-aff8-ee54234cc6db
-data = hcat(Ε,k.(Ε))
+data = hcat(Ε,k.(Ε),r₁.(Ε))
 
 # ╔═╡ eccc7e67-6964-4875-8dc8-0d9be3c00b02
-header = (["ε","k_ε"])
+header = (["ε","k_ε","r₁"])
 
 # ╔═╡ 56b87713-30b6-4271-aa90-9a243bc31ab6
 pretty_table(data;header = header)
+
+# ╔═╡ ff2e0537-bb3b-4e72-b014-f6767679b2f8
+md"---"
+
+# ╔═╡ 897ca967-5121-4e35-b087-4f34d2efb673
+md"Bei $k_\varepsilon$ durch $\sqrt{\varepsilon}$ zu teilen macht viel mehr Sinn. Dann konvergiert der Term für $\varepsilon \to 0$ auch gegen $\sqrt{2}$ wie geplant und wird nicht immer größer. Hier die ensprechende Anpsasung:"
+
+# ╔═╡ f29c56ce-c625-43b3-9483-df9fa879484c
+k_new(ε) = abs(r₁(ε)-1)/sqrt(ε)
+
+# ╔═╡ 69651915-ae13-43e5-8ab2-96e4f537f933
+data_new = hcat(Ε,k_new.(Ε),r₁.(Ε));
+
+# ╔═╡ b696e3f1-9429-4828-a16e-6fd4c959f327
+pretty_table(data_new;header = header)
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -174,5 +189,10 @@ version = "5.8.0+0"
 # ╠═de9c6737-088d-4d86-aff8-ee54234cc6db
 # ╠═eccc7e67-6964-4875-8dc8-0d9be3c00b02
 # ╠═56b87713-30b6-4271-aa90-9a243bc31ab6
+# ╟─ff2e0537-bb3b-4e72-b014-f6767679b2f8
+# ╟─897ca967-5121-4e35-b087-4f34d2efb673
+# ╠═f29c56ce-c625-43b3-9483-df9fa879484c
+# ╠═69651915-ae13-43e5-8ab2-96e4f537f933
+# ╠═b696e3f1-9429-4828-a16e-6fd4c959f327
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
