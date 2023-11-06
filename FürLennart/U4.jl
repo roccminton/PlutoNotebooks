@@ -220,7 +220,7 @@ end
 function B(x,n)
 	c = [1.0]
 	d = [-2*(sin(x/2))^2]
-	#same index shifft as above in A
+	#same index shift as above in A
 	for k in 2:n+1
 		push!(c,c[k-1]+d[k-1])
 		push!(d,b(d[1],c[k],d[k-1]))
