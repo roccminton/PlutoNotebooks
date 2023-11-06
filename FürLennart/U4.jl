@@ -137,7 +137,7 @@ function dF(i,j)
 	iszero(i+j) && return F(0,0)
 	iszero(i) && return cos(j*π/2)
 	iszero(j) && return sin(i*π/2)
-	return 0
+	return 0.0
 end
 
 # ╔═╡ 98f02823-5f92-4355-97cf-b1d0f8db1ff1
