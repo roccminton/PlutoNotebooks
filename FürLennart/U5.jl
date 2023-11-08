@@ -11,6 +11,7 @@ begin
 	using SpecialFunctions
 	using LaTeXStrings
 	using Distributions
+	using LinearAlgebra
 end
 
 # ╔═╡ 80cec5ad-dc4c-4aab-9921-6755e4c30029
@@ -129,11 +130,85 @@ round(count(x-> abs(Tf(x,Tcosh)-f(x)) ≤ 10^(-14),Y)/length(Y) * 100,digits=2)
 md"percent of the points under consideration the absolute error is smaller $10^{-14}$, but not for all of the points.
 I would bet the problem comes from dividing a very small number by another very small number near zero. So we are entering a danger zone there."
 
+# ╔═╡ 5bc94356-2f54-497c-b204-187ec3fdb045
+md"---"
+
+# ╔═╡ cc91185b-7e71-4402-8faa-00d20c9e4626
+md"#### Aufgabe 2"
+
+# ╔═╡ 26b9ce9d-2c8e-4e0b-8ca2-0c48f312ec24
+md"a) $n^2$ Rechenschritte also $O(n^2)$"
+
+# ╔═╡ 10155384-6aea-4ff1-a7ac-acbe739d1117
+md"b)"
+
+# ╔═╡ 5c1275d2-4d76-4a74-a5dd-40ab40765dd4
+function my_inv(M)
+	#Check that a matrix is square, then return its common dimension.
+	n = LinearAlgebra.checksquare(M)
+	#Define B as nxn identity matrix 
+	B = Matrix(Diagonal(fill(1.0,n)))
+	for j in 1:n
+		f = M[j,j]
+		M[j,:] .= M[j,:] ./ f
+		B[j,:] .= B[j,:] ./ f
+		for i in 1:n
+			if i ≠ j
+				f = M[i,j]
+				M[i,:] .= M[i,:] .- f .* M[j,:]
+				B[i,:] .= B[i,:] .- f .* B[j,:]
+			end
+		end
+	end
+	return B
+end
+
+# ╔═╡ 2fb4d7d1-ce0d-49aa-9e14-d4e6811eea29
+M(n) = Matrix(Tridiagonal(fill(-1.0,n-1),fill(4.0,n),fill(-1.0,n-1)))
+
+# ╔═╡ e5af04eb-63ea-4f6d-9f5c-f110560575b8
+B(n) = fill(1.0,(1,n))
+
+# ╔═╡ 108d521b-2e07-4a29-ba79-850bea369a13
+my_solve(n) = B(n) * my_inv(M(n))
+
+# ╔═╡ 5913945e-e8e1-4364-aa27-f6c023ea3782
+solve(n) =  B(n) / M(n)
+
+# ╔═╡ fc2974c5-9995-44ae-b723-48c8b1b30971
+md"Executing the following cell takes some time... you can go grab a coffee or something and come back later."
+
+# ╔═╡ 974ea84d-fc3e-4f51-88d5-5bd2dfbb2d80
+begin
+	ns = 2 .^ (1:10)
+
+	times = hcat(
+		ns,
+		[@elapsed my_solve(n) for n in ns],
+		[@elapsed solve(n) for n in ns]
+	)
+end
+
+# ╔═╡ b695db41-e402-4e01-b180-768257c239fb
+begin
+	pretty_table(
+		times;
+		header=(
+			["n","My Sover","Build in Solver"],
+			["","[seconds]","[seconds]"]
+		)
+	)
+end
+
+# ╔═╡ 55ab1073-f464-4c2c-a5f9-51ec91884412
+md"Ouch... that gets bad if $n$ gets big. But no suprise, that the Julia cracks do better than us. Also funny that almost all time to calculate all the times was spend calculating only the solution for $n=2^{10}$ with `my_solver`."
+
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 PrettyTables = "08abe8d2-0d0c-5749-adfa-8a2ac140af0d"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
@@ -152,7 +227,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.9.1"
 manifest_format = "2.0"
-project_hash = "ebbe0ee7b3c0cd8b71771345845eac99c820a1c1"
+project_hash = "47ebae9faefe920ca898edcf11443af010fb5b73"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
@@ -1362,5 +1437,18 @@ version = "1.4.1+1"
 # ╟─6daf8dab-d04a-4194-b9e2-0100b95acb87
 # ╠═c24497cc-1cae-4fe6-b9b4-5fcd96668885
 # ╟─ad2320d5-d67e-4f81-82cb-964fd62d6a62
+# ╟─5bc94356-2f54-497c-b204-187ec3fdb045
+# ╟─cc91185b-7e71-4402-8faa-00d20c9e4626
+# ╟─26b9ce9d-2c8e-4e0b-8ca2-0c48f312ec24
+# ╟─10155384-6aea-4ff1-a7ac-acbe739d1117
+# ╠═5c1275d2-4d76-4a74-a5dd-40ab40765dd4
+# ╠═2fb4d7d1-ce0d-49aa-9e14-d4e6811eea29
+# ╠═e5af04eb-63ea-4f6d-9f5c-f110560575b8
+# ╠═108d521b-2e07-4a29-ba79-850bea369a13
+# ╠═5913945e-e8e1-4364-aa27-f6c023ea3782
+# ╟─fc2974c5-9995-44ae-b723-48c8b1b30971
+# ╠═974ea84d-fc3e-4f51-88d5-5bd2dfbb2d80
+# ╟─b695db41-e402-4e01-b180-768257c239fb
+# ╟─55ab1073-f464-4c2c-a5f9-51ec91884412
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
