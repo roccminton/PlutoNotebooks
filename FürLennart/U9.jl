@@ -4,245 +4,151 @@
 using Markdown
 using InteractiveUtils
 
-# This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
-macro bind(def, element)
-    quote
-        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
-        local el = $(esc(element))
-        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
-        el
-    end
-end
+# ╔═╡ cc01af56-95c9-11ee-1d39-993be8726d5b
+using LinearAlgebra
 
-# ╔═╡ 7781184c-7d4e-11ee-2023-e5ac2ed56157
+# ╔═╡ 4976beda-db59-448c-9e0f-082b126fa4c5
 begin
+	using SparseArrays
 	using Plots
-	using PlutoUI
-	using JLD
-	using Statistics
+	using LaTeXStrings
 end
 
-# ╔═╡ f41793a1-d808-4382-bb7e-7bc7df97f6ed
-begin
-	#@Work
-	#abs_path = "/media/larocca/PortableSSD/Data/NoRecombination/NumericalEquilibria/"
-	#@Home
-	abs_path = "/Users/roccminton/Sciebo/NonRandomMating/plots_Luis/NoRecombination/NumericalEquilibria/"
-	filename = "means_over_N_and_dni"
-end;
-
-# ╔═╡ e6bee0d7-2e24-4e7d-93e2-be7c62692f27
+# ╔═╡ 2bf8a538-be58-44a2-b230-8b8cdbaec438
 md"""
-For free recombination ($r=1$) the equilibrium mutation burden, prevalence and population size is given by
+#### Aufgabe 1
 
-$$\begin{align*}
-	\hat{L} &= 2N\sqrt{1-e^{-\frac{\mu}{N}}} \\
-	\hat{P} &= 1-e^{-\mu} \\
-	\hat{K} &= \frac{b\cdot e^{-\mu} - d}{c}
-\end{align*}$$
+Der code für my_QR! und für QTX ist aus nem Skipt von der Uni Cornell
 
-where $N$ is the genome size, $\mu$ is the genome wide mutation rate and $b,d,c$ are the birth, death and competition rates.
 """
 
-# ╔═╡ abba7a62-ba53-4f9a-badd-9edcf56604f7
-ML(μ,N) = 2N*sqrt(1-exp(-μ/N))
+# ╔═╡ af2bbf67-5e4d-4c54-8909-5652b9d39c36
+#Berechne die QR-Transformation von A mittels Housholder Transformation. Überschreibe das Ergebnis in A und in τ die Diagonalelemente
+function my_QR!(A,τ)
+	m,n = size(A)
+	τ .= zero(Float64)
+	for j = 1:n
+		normx = norm(view(A,j:m,j))
+		s = -sign(A[j,j])
+		#change sign(0)=0 to sign(0)=1
+		iszero(s) && (s=one(typeof(s)))
+		u1 = A[j,j] - s*normx
+		w = A[j:end,j] ./ u1
+		w[1] = 1
+		view(A,j+1:m,j) .= view(w,2:m-j+1)
+		A[j,j] = s*normx
+		τ[j] = -s*u1 / normx
 
-# ╔═╡ aad58f76-0bf4-4df9-91d3-7db37a49a6b5
-P(μ) = 1-exp(-μ)
-
-# ╔═╡ 1f665e48-2902-4ea4-874a-8bcaa96fd00c
-popsize(μ) = (exp(-μ) - 0.9) * 100_000.0
-
-# ╔═╡ 0b435238-7a28-4c75-8056-4ba5ec0b8ae8
-i(x,d,data) = findfirst(isequal(x),data[d])
-
-# ╔═╡ 0b7b85a3-9cba-41a5-b5d5-3f60f3d71a48
-md"""Choose recombination rate $(@bind rec Select([
-	0.0 => 0.0, 0.1 => 0.1, 0.2 => 0.2, 0.3 => 0.3,
-	0.4 => 0.4, 0.5 => 0.5, 1.0 => 1.0
-]))"""
-
-# ╔═╡ 1eba1983-ae26-4d08-86fd-a41b64426a6a
-data = load(abs_path * filename * "_rec=$rec.jld")
-
-# ╔═╡ bbad8573-8c5c-4c9f-b0de-393e7414f81c
-md"""Choose N: $(@bind N Slider(data["N"],show_value=true))"""
-
-# ╔═╡ f34e5929-d65b-4b21-8f65-71e8ae826810
-md"""Choose μ: $(@bind μ Slider(data["μ"],show_value=true))"""
-
-# ╔═╡ 5e5f91f9-822f-4bca-94cc-5b5248719fba
-let
-	p_μ = plot(
-		data["μ"],data["prev"][:,i(N,"N",data)],
-		title="Prevalence over Mutation Rate",label="data",
-		xlabel = "μ", ylabel ="Prevalence",
-		ylim = (minimum(data["prev"]),maximum(data["prev"])),
-		legend = :topleft
-	)
-	plot!(p_μ,data["μ"],P.(data["μ"]),label="solution")
-	annotate!(data["μ"][end],minimum(data["prev"]),text("N=$N",:right,:bottom,10))
-
-	p_N = plot(
-		data["N"],data["prev"][i(μ,"μ",data),:],
-		title="Prevalence over Number of Genes",label="data",
-		xlabel = "N", ylabel ="Prevalence",
-		ylim = (minimum(data["prev"]),maximum(data["prev"])),
-		legend = :topleft
-	)
-	hline!(p_N,[P(μ)],label="solution")
-	annotate!(data["N"][end],minimum(data["prev"]),text("μ=$μ",:right,:bottom,10))
-
-	plot(p_μ,p_N,layout=(2,1))
+		view(A,j:m,j+1:m) .-= (τ[j] .* w)*(transpose(w)*view(A,j:m,j+1:m))
+	end
+	#Ich check nicht ganz wieso, aber irgendwie war das Vorzeichen immer umgekehrt... mit ein bisschen Pfusch am bau klappts aber ¯\_(ツ)_/¯ 
+	A[end,end] *= (-1)
 end
 
-# ╔═╡ b0b9dbdb-d712-4425-908c-b2f2e015f353
+# ╔═╡ 3ace32c2-4f3e-4745-a9b7-05a9ff71a026
+#Multipliziert X mit Q^T implizit, nur mit der QR Transformierten
+function QTX(QR,τ,X)
+	m,n = size(QR)
+	QTX = X
+	for j in 1:n
+		w = vcat(1,view(QR,j+1:m,j))
+		view(QTX,j:m,:) .-= (τ[j]*w)*(transpose(w)*view(QTX,j:m,:))
+	end
+	#Derselbe Fehler wie oben... vielleicht finde ich ihn noch, ansonsten gehts so auch erstmal ¯\_(ツ)_/¯ 
+	view(QTX,m,:) .= (-1) .* view(QTX,m,:)
+	return QTX
+end
+
+# ╔═╡ 3e56ec4a-d663-4e8d-8b6a-684c457a87d4
+#Rückwärtseinsetzen zum Lösen von Rx = y, wobei R obere Dreiecksform hat
+function r(R,y)
+	n = size(y,1)
+	x = similar(y)
+	x[n] = y[n]/R[n,n]
+	for i ∈ n-1:-1:1
+		x[i] = 1/R[i,i] * (y[i] - sum(R[i,k]*x[k] for k ∈ i+1:n))
+	end
+	return x
+end
+
+# ╔═╡ be2ef4ff-1dde-427b-a4c4-dd0691e8b7e1
+#Solves the linar equation Ax=b via in build QR transpose and returns x
+function my_solve!(A,b)
+	τ = zeros(size(A,1))
+	my_QR!(A,τ)
+	return r(A,QTX(A,τ,b))
+end
+
+# ╔═╡ 1868aceb-c57c-4c37-b73f-8aac1f08f75f
+#Solves the linar equation Ax=b via in build QR transpose and returns x
+function solve(A,b)
+	F = qr(A)
+	return F.R \ transpose(F.Q)*b 
+end
+
+# ╔═╡ d96afc87-1fb4-4e75-8476-259f8f14df58
 let
-	p_μ = plot(
-		data["μ"],data["ml"][:,i(N,"N",data)],
-		title="Mutation Burden over Mutation Rate",label="data",
-		xlabel = "μ", ylabel ="Mutation Burden",
-		ylim = (minimum(data["ml"]),maximum(data["ml"])),
-		legend = :topleft
-	)
-	plot!(p_μ,data["μ"],ML.(data["μ"],N),label="solution")
-	annotate!(data["μ"][end],minimum(data["ml"]),text("N=$N",:right,:bottom,10))
+A = Matrix{Float64}([
+    0 -2 -1;
+    0 0 -1;
+    4 5 2;
+])
 	
-	p_N = plot(
-		data["N"],data["ml"][i(μ,"μ",data),:],
-		title="Mutation Burden over Number of Genes",label="data",
-		xlabel = "N", ylabel ="Mutation Burden",
-		ylim = (minimum(data["ml"]),maximum(data["ml"])),
-		legend = :topleft
-	)
-	plot!(p_N,data["N"],ML.(μ,data["N"]) ,label="solution")
-	annotate!(data["N"][end],minimum(data["ml"]),text("μ=$μ",:right,:bottom,10))
+b = ones(3,1)
 
-	plot(p_μ,p_N,layout=(2,1))
+my_solve!(A,b)
 end
 
-# ╔═╡ 6f586868-bb83-4120-ab5c-b86ec19028b1
-let
-	p_μ = plot(
-		data["μ"],data["popsize"][:,i(N,"N",data)],
-		title="Population size over Mutation Rate",label="data",
-		xlabel = "μ", ylabel ="PopSize",
-		ylim = (minimum(data["popsize"]),maximum(data["popsize"])),
-		legend = :topleft
-	)
-	plot!(p_μ,data["μ"],popsize.(data["μ"]),label="solution")
-	annotate!(data["μ"][end],minimum(data["popsize"]),text("N=$N",:right,:bottom,10))
+# ╔═╡ f0e8bfd3-0ae8-43f2-96c0-845785f29182
+md"""
+---
+#### Aufgabe 2
+"""
 
-	p_N = plot(
-		data["N"],data["popsize"][i(μ,"μ",data),:],
-		title="Population Size over Number of Genes",label="data",
-		xlabel = "N", ylabel ="PopSize",
-		ylim = (minimum(data["popsize"]),maximum(data["popsize"])),
-		legend = :topleft
-	)
-	hline!(p_N,[popsize(μ)],label="solution")
-	annotate!(data["N"][end],minimum(data["popsize"]),text("μ=$μ",:right,:bottom,10))
-
-	plot(p_μ,p_N,layout=(2,1))
+# ╔═╡ 20550512-e577-49d8-9cf2-9e514346c8e0
+function T(n)
+	u = fill(-1,n-2)
+	return spdiagm(-1=>u,0=>fill(4,n-1),1=>u)
 end
 
-# ╔═╡ ab7f6104-a662-4335-92bf-35e8f4c21947
-let
-	p_μ = plot(
-		data["μ"],mean(data["prev"][:,n] for n in 1:length(data["N"])),
-		title="Average Prevalence over Mutation Rate",label="data",
-		xlabel = "μ", ylabel ="Prevalence",
-		ylim = (minimum(data["prev"]),maximum(data["prev"])),
-		legend = :topleft
-	)
-	plot!(p_μ,data["μ"],P.(data["μ"]),label="solution")
-
-	p_N = plot(
-		data["N"],mean(data["prev"][m,:] for m in 1:length(data["μ"])),
-		title="Average Prevalence over Number of Genes",label="data",
-		xlabel = "N", ylabel ="Prevalence",
-		ylim = (minimum(data["prev"]),maximum(data["prev"])),
-		legend = :topleft
-	)
-	hline!(p_N,[mean(P(m) for m in data["μ"])],label="solution")
-
-	plot(p_μ,p_N,layout=(2,1))
+# ╔═╡ f4797506-9d1c-4615-bcc3-84886c34ab64
+function A(n)
+	i = ones(Int,n-2)
+	return n^2 .* kron(I(n-1),T(n))-kron(spdiagm(-1=>i,1=>i),I(n-1))
 end
 
-# ╔═╡ 356ef84e-f60c-4695-84d6-43c94d66e05e
-let
-	p_μ = plot(
-		data["μ"],mean(data["ml"][:,n] for n in 1:length(data["N"])),
-		title="Average Mutation Burden over Mutation Rate",label="data",
-		xlabel = "μ", ylabel ="Mutation Burden",
-		ylim = (minimum(data["ml"]),maximum(data["ml"])),
-		legend = :topleft
-	)
-	plot!(p_μ,data["μ"],mean(ML.(data["μ"],n) for n in data["N"]),label="solution")
-
-	p_N = plot(
-		data["N"],mean(data["ml"][m,:] for m in 1:length(data["μ"])),
-		title="Average Mutation Burden over Number of Genes",label="data",
-		xlabel = "N", ylabel ="Mutation Burden",
-		ylim = (minimum(data["ml"]),maximum(data["ml"])),
-		legend = :topleft
-	)
-	plot!(p_N,data["N"],mean(ML.(m,data["N"]) for m in data["μ"]),label="solution")
-
-	plot(p_μ,p_N,layout=(2,1))
-end
-
-# ╔═╡ 66b88876-d4f5-4f36-971c-c95c08188a72
-let
-	p_μ = plot(
-		data["μ"],mean(data["popsize"][:,n] for n in 1:length(data["N"])),
-		title="Average Population Size over Mutation Rate",label="data",
-		xlabel = "μ", ylabel ="PopSize",
-		ylim = (minimum(data["popsize"]),maximum(data["popsize"])),
-		legend = :topleft
-	)
-	plot!(p_μ,data["μ"],popsize.(data["μ"]),label="solution")
-
-	p_N = plot(
-		data["N"],mean(data["popsize"][m,:] for m in 1:length(data["μ"])),
-		title="Average Population Size over Number of Genes",label="data",
-		xlabel = "N", ylabel ="PopSize",
-		ylim = (minimum(data["popsize"]),maximum(data["popsize"])),
-		legend = :topleft
-	)
-	hline!(p_N,[mean(popsize(m) for m in data["μ"])],label="solution")
-
-	plot(p_μ,p_N,layout=(2,1))
-end
-
-# ╔═╡ 2eab64be-fa3c-4f60-bd81-f4773015f6a1
+# ╔═╡ ccc3fc25-d29a-4fd0-8346-0cda7fa84062
 begin
-	plot(
-		data["N"],data["ml"][i(μ,"μ",data),:],
-		title="Mutation Burden over Number of Genes",label="data",
-		xlabel = "N", ylabel ="Mutation Burden",
-		ylim = (minimum(data["ml"]),maximum(data["ml"])),
-		legend = :topleft
-	)
-	plot!(data["N"],ML.(μ,data["N"]) ,label="solution")
-	annotate!(data["N"][end],minimum(data["ml"]),text("μ=$μ",:right,:bottom,10))
-end
+	j = 5
+	n = 2^j
+	
+	LLt = cholesky(A(n))
+	f =  ones(Int,(n-1)^2,1)
 
-# ╔═╡ 58df7278-5031-4dcb-9f1f-3b1f4e1ae6d5
-h(N,μ) = sqrt(1-exp(-μ/N))
+	u = LLt.U \ (LLt.L \ f)
+end;
+
+# ╔═╡ 371f5760-011f-4d6f-a4e9-59f81bdefcf4
+heatmap(
+	transpose(reshape(u,n-1,n-1)),
+	title = L"Numerische Lösung des Randwertproblems $-\Delta u(x,y) = 1$",
+	size=(800,600),
+	yflip = true,
+	xlabel=L"u_{1:n-1,x}",
+	ylabel=L"u_{y,1:n-1}"
+)
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
-JLD = "4138dd39-2aa7-5051-a626-17a0bb65d9c8"
+LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
-PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
-Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
+SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
 [compat]
-JLD = "~0.13.3"
+LaTeXStrings = "~1.3.1"
 Plots = "~1.39.0"
-PlutoUI = "~0.7.52"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
@@ -251,13 +157,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.9.1"
 manifest_format = "2.0"
-project_hash = "dbd9cc564ade4d1ae3adc7a3719f6d6ebb2cbbdf"
-
-[[deps.AbstractPlutoDingetjes]]
-deps = ["Pkg"]
-git-tree-sha1 = "91bd53c39b9cbfb5ef4b015e8b582d344532bd0a"
-uuid = "6e696c72-6542-2067-7265-42206c756150"
-version = "1.2.0"
+project_hash = "41b0a193ed9afdb871f7315124b3ef8d90df04c1"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
@@ -274,18 +174,6 @@ git-tree-sha1 = "43b1a4a8f797c1cddadf60499a8a077d4af2cd2d"
 uuid = "d1d4a3ce-64b1-5f1a-9ba4-7e7e69966f35"
 version = "0.1.7"
 
-[[deps.Blosc]]
-deps = ["Blosc_jll"]
-git-tree-sha1 = "310b77648d38c223d947ff3f50f511d08690b8d5"
-uuid = "a74b3585-a348-5f62-a45c-50e91977d574"
-version = "0.7.3"
-
-[[deps.Blosc_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Lz4_jll", "Zlib_jll", "Zstd_jll"]
-git-tree-sha1 = "6aa2d0b8db41ab860bbbf61b9587e3b957683fd3"
-uuid = "0b7ba130-8d10-5ba8-a3d6-c5182647fed9"
-version = "1.21.4+0"
-
 [[deps.Bzip2_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "19a35467a82e236ff51bc17a3a44b69ef35185a2"
@@ -300,9 +188,9 @@ version = "1.16.1+1"
 
 [[deps.CodecZlib]]
 deps = ["TranscodingStreams", "Zlib_jll"]
-git-tree-sha1 = "02aa26a4cf76381be7f66e020a3eddeb27b0a092"
+git-tree-sha1 = "cd67fc487743b2f0fd4380d4cbd3a24660d0eec8"
 uuid = "944b1d66-785c-5afd-91f1-9de20f533193"
-version = "0.7.2"
+version = "0.7.3"
 
 [[deps.ColorSchemes]]
 deps = ["ColorTypes", "ColorVectorSpace", "Colors", "FixedPointNumbers", "PrecompileTools", "Random"]
@@ -351,9 +239,9 @@ version = "1.0.2+0"
 
 [[deps.ConcurrentUtilities]]
 deps = ["Serialization", "Sockets"]
-git-tree-sha1 = "5372dbbf8f0bdb8c700db5367132925c0771ef7e"
+git-tree-sha1 = "8cfa272e8bdedfa88b6aefbbca7c19f1befac519"
 uuid = "f0e56b4a-5159-44fe-b623-3e5288b988bb"
-version = "2.2.1"
+version = "2.3.0"
 
 [[deps.Contour]]
 git-tree-sha1 = "d05d9e7b7aedff4e5b51a029dced05cfb6125781"
@@ -421,12 +309,6 @@ deps = ["Artifacts", "Bzip2_jll", "FreeType2_jll", "FriBidi_jll", "JLLWrappers",
 git-tree-sha1 = "74faea50c1d007c85837327f6775bea60b5492dd"
 uuid = "b22a6f82-2f65-5046-a5b2-351ab43fb4e5"
 version = "4.4.2+2"
-
-[[deps.FileIO]]
-deps = ["Pkg", "Requires", "UUIDs"]
-git-tree-sha1 = "299dc33549f68299137e51e6d49a13b5b1da9673"
-uuid = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
-version = "1.16.1"
 
 [[deps.FileWatching]]
 uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
@@ -502,24 +384,6 @@ git-tree-sha1 = "53bb909d1151e57e2484c3d1b53e19552b887fb2"
 uuid = "42e2da0e-8278-4e71-bc24-59509adca0fe"
 version = "1.0.2"
 
-[[deps.H5Zblosc]]
-deps = ["Blosc", "HDF5"]
-git-tree-sha1 = "d3966da25e48c05c31cd9786fd201627877612a2"
-uuid = "c8ec2601-a99c-407f-b158-e79c03c2f5f7"
-version = "0.1.1"
-
-[[deps.HDF5]]
-deps = ["Compat", "HDF5_jll", "Libdl", "Mmap", "Printf", "Random", "Requires", "UUIDs"]
-git-tree-sha1 = "114e20044677badbc631ee6fdc80a67920561a29"
-uuid = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
-version = "0.16.16"
-
-[[deps.HDF5_jll]]
-deps = ["Artifacts", "JLLWrappers", "LibCURL_jll", "Libdl", "OpenSSL_jll", "Pkg", "Zlib_jll"]
-git-tree-sha1 = "4cc2bb72df6ff40b055295fdef6d92955f9dede8"
-uuid = "0234f1f7-429e-5d53-9886-15a909be8d59"
-version = "1.12.2+2"
-
 [[deps.HTTP]]
 deps = ["Base64", "CodecZlib", "ConcurrentUtilities", "Dates", "ExceptionUnwrapping", "Logging", "LoggingExtras", "MbedTLS", "NetworkOptions", "OpenSSL", "Random", "SimpleBufferStream", "Sockets", "URIs", "UUIDs"]
 git-tree-sha1 = "5eab648309e2e060198b45820af1a37182de3cce"
@@ -532,24 +396,6 @@ git-tree-sha1 = "129acf094d168394e80ee1dc4bc06ec835e510a3"
 uuid = "2e76f6c2-a576-52d4-95c1-20adfe4de566"
 version = "2.8.1+1"
 
-[[deps.Hyperscript]]
-deps = ["Test"]
-git-tree-sha1 = "8d511d5b81240fc8e6802386302675bdf47737b9"
-uuid = "47d2ed2b-36de-50cf-bf87-49c2cf4b8b91"
-version = "0.0.4"
-
-[[deps.HypertextLiteral]]
-deps = ["Tricks"]
-git-tree-sha1 = "c47c5fa4c5308f27ccaac35504858d8914e102f9"
-uuid = "ac1192a8-f4b3-4bfe-ba22-af5b92cd3ab2"
-version = "0.9.4"
-
-[[deps.IOCapture]]
-deps = ["Logging", "Random"]
-git-tree-sha1 = "d75853a0bdbfb1ac815478bacd89cd27b550ace6"
-uuid = "b5f81e59-6552-4d32-b1f0-c071b021bf89"
-version = "0.2.3"
-
 [[deps.InteractiveUtils]]
 deps = ["Markdown"]
 uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
@@ -559,17 +405,11 @@ git-tree-sha1 = "630b497eafcc20001bba38a4651b327dcfc491d2"
 uuid = "92d709cd-6900-40b7-9082-c6be49f344b6"
 version = "0.2.2"
 
-[[deps.JLD]]
-deps = ["Compat", "FileIO", "H5Zblosc", "HDF5", "Printf"]
-git-tree-sha1 = "ec6afa4fd3402e4dd5b15b3e5dd2f7dd52043ce8"
-uuid = "4138dd39-2aa7-5051-a626-17a0bb65d9c8"
-version = "0.13.3"
-
 [[deps.JLFzf]]
 deps = ["Pipe", "REPL", "Random", "fzf_jll"]
-git-tree-sha1 = "f377670cda23b6b7c1c0b3893e37451c5c1a2185"
+git-tree-sha1 = "9fb0b890adab1c0a4a475d4210d51f228bfc250d"
 uuid = "1019f520-868f-41f5-a6de-eb00f4b6a39c"
-version = "0.1.5"
+version = "0.1.6"
 
 [[deps.JLLWrappers]]
 deps = ["Artifacts", "Preferences"]
@@ -614,9 +454,9 @@ uuid = "dd4b983a-f0e5-5f8d-a1b7-129d4a5fb1ac"
 version = "2.10.1+0"
 
 [[deps.LaTeXStrings]]
-git-tree-sha1 = "f2355693d6778a178ade15952b7ac47a4ff97996"
+git-tree-sha1 = "50901ebc375ed41dbf8058da26f9de442febbbec"
 uuid = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
-version = "1.3.0"
+version = "1.3.1"
 
 [[deps.Latexify]]
 deps = ["Formatting", "InteractiveUtils", "LaTeXStrings", "MacroTools", "Markdown", "OrderedCollections", "Printf", "Requires"]
@@ -727,20 +567,9 @@ uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
 
 [[deps.LoggingExtras]]
 deps = ["Dates", "Logging"]
-git-tree-sha1 = "0d097476b6c381ab7906460ef1ef1638fbce1d91"
+git-tree-sha1 = "c1dd6d7978c12545b4179fb6153b9250c96b0075"
 uuid = "e6f89c97-d47a-5376-807f-9c37f3926c36"
-version = "1.0.2"
-
-[[deps.Lz4_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "6c26c5e8a4203d43b5497be3ec5d4e0c3cde240a"
-uuid = "5ced341a-0733-55b8-9ab6-a4889d929147"
-version = "1.9.4+0"
-
-[[deps.MIMEs]]
-git-tree-sha1 = "65f28ad4b594aebe22157d6fac869786a255b7eb"
-uuid = "6c6e2e6c-3030-632d-7369-2d6c69616d65"
-version = "0.1.4"
+version = "1.0.3"
 
 [[deps.MacroTools]]
 deps = ["Markdown", "Random"]
@@ -889,12 +718,6 @@ version = "1.39.0"
     ImageInTerminal = "d8c32880-2388-543b-8c61-d9f865259254"
     Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
-[[deps.PlutoUI]]
-deps = ["AbstractPlutoDingetjes", "Base64", "ColorTypes", "Dates", "FixedPointNumbers", "Hyperscript", "HypertextLiteral", "IOCapture", "InteractiveUtils", "JSON", "Logging", "MIMEs", "Markdown", "Random", "Reexport", "URIs", "UUIDs"]
-git-tree-sha1 = "e47cd150dbe0443c3a3651bc5b9cbd5576ab75b7"
-uuid = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
-version = "0.7.52"
-
 [[deps.PrecompileTools]]
 deps = ["Preferences"]
 git-tree-sha1 = "03b4c25b43cb84cee5c90aa9b5ea0a78fd848d2f"
@@ -944,9 +767,9 @@ version = "1.2.2"
 
 [[deps.RelocatableFolders]]
 deps = ["SHA", "Scratch"]
-git-tree-sha1 = "90bc7a7c96410424509e4263e277e43250c05691"
+git-tree-sha1 = "ffdaf70d81cf6ff22c2b6e733c900c3321cab864"
 uuid = "05181044-ff0b-4ac5-8273-598c1e38db00"
-version = "1.0.0"
+version = "1.0.1"
 
 [[deps.Requires]]
 deps = ["UUIDs"]
@@ -960,9 +783,9 @@ version = "0.7.0"
 
 [[deps.Scratch]]
 deps = ["Dates"]
-git-tree-sha1 = "30449ee12237627992a99d5e30ae63e4d78cd24a"
+git-tree-sha1 = "3bac05bc7e74a75fd9cba4295cde4045d9fe2386"
 uuid = "6c6a2e73-6563-6170-7368-637461726353"
-version = "1.2.0"
+version = "1.2.1"
 
 [[deps.Serialization]]
 uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
@@ -983,9 +806,9 @@ uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
 
 [[deps.SortingAlgorithms]]
 deps = ["DataStructures"]
-git-tree-sha1 = "c60ec5c62180f27efea3ba2908480f8055e17cee"
+git-tree-sha1 = "5165dfb9fd131cf0c6957a3a7605dede376e7b63"
 uuid = "a2af1166-a08f-5f64-846c-94a0d3cef48c"
-version = "1.1.1"
+version = "1.2.0"
 
 [[deps.SparseArrays]]
 deps = ["Libdl", "LinearAlgebra", "Random", "Serialization", "SuiteSparse_jll"]
@@ -1034,20 +857,18 @@ deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[deps.TranscodingStreams]]
-deps = ["Random", "Test"]
-git-tree-sha1 = "9a6ae7ed916312b41236fcef7e0af564ef934769"
+git-tree-sha1 = "49cbf7c74fafaed4c529d47d48c8f7da6a19eb75"
 uuid = "3bb67fe8-82b1-5028-8e26-92a6c54297fa"
-version = "0.9.13"
+version = "0.10.1"
+weakdeps = ["Random", "Test"]
 
-[[deps.Tricks]]
-git-tree-sha1 = "aadb748be58b492045b4f56166b5188aa63ce549"
-uuid = "410a4b4d-49e4-4fbc-ab6d-cb71b17b3775"
-version = "0.1.7"
+    [deps.TranscodingStreams.extensions]
+    TestExt = ["Test", "Random"]
 
 [[deps.URIs]]
-git-tree-sha1 = "b7a5e99f24892b6824a954199a45e9ffcc1c70f0"
+git-tree-sha1 = "67db6cc7b3821e19ebe75791a9dd19c9b1188f2b"
 uuid = "5c2747f8-b7ea-4ff2-ba2e-563bfd36b1d4"
-version = "1.5.0"
+version = "1.5.1"
 
 [[deps.UUIDs]]
 deps = ["Random", "SHA"]
@@ -1107,9 +928,9 @@ version = "1.25.0+0"
 
 [[deps.XML2_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Libiconv_jll", "Zlib_jll"]
-git-tree-sha1 = "04a51d15436a572301b5abbb9d099713327e9fc4"
+git-tree-sha1 = "24b81b59bd35b3c42ab84fa589086e19be919916"
 uuid = "02c8fc9c-b97f-50b9-bbe4-9be30ff0a78a"
-version = "2.10.4+0"
+version = "2.11.5+0"
 
 [[deps.XSLT_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Libgcrypt_jll", "Libgpg_error_jll", "Libiconv_jll", "Pkg", "XML2_jll", "Zlib_jll"]
@@ -1286,9 +1107,9 @@ version = "3.2.9+0"
 
 [[deps.fzf_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
-git-tree-sha1 = "868e669ccb12ba16eaf50cb2957ee2ff61261c56"
+git-tree-sha1 = "47cf33e62e138b920039e8ff9f9841aafe1b733e"
 uuid = "214eeab7-80f7-51ab-84ad-2988db7cef09"
-version = "0.29.0+0"
+version = "0.35.1+0"
 
 [[deps.gperf_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -1379,24 +1200,19 @@ version = "1.4.1+1"
 """
 
 # ╔═╡ Cell order:
-# ╠═7781184c-7d4e-11ee-2023-e5ac2ed56157
-# ╠═f41793a1-d808-4382-bb7e-7bc7df97f6ed
-# ╟─e6bee0d7-2e24-4e7d-93e2-be7c62692f27
-# ╠═abba7a62-ba53-4f9a-badd-9edcf56604f7
-# ╠═aad58f76-0bf4-4df9-91d3-7db37a49a6b5
-# ╠═1f665e48-2902-4ea4-874a-8bcaa96fd00c
-# ╠═0b435238-7a28-4c75-8056-4ba5ec0b8ae8
-# ╟─0b7b85a3-9cba-41a5-b5d5-3f60f3d71a48
-# ╠═1eba1983-ae26-4d08-86fd-a41b64426a6a
-# ╟─bbad8573-8c5c-4c9f-b0de-393e7414f81c
-# ╟─f34e5929-d65b-4b21-8f65-71e8ae826810
-# ╟─5e5f91f9-822f-4bca-94cc-5b5248719fba
-# ╠═b0b9dbdb-d712-4425-908c-b2f2e015f353
-# ╟─6f586868-bb83-4120-ab5c-b86ec19028b1
-# ╟─ab7f6104-a662-4335-92bf-35e8f4c21947
-# ╟─356ef84e-f60c-4695-84d6-43c94d66e05e
-# ╟─66b88876-d4f5-4f36-971c-c95c08188a72
-# ╠═2eab64be-fa3c-4f60-bd81-f4773015f6a1
-# ╠═58df7278-5031-4dcb-9f1f-3b1f4e1ae6d5
+# ╠═cc01af56-95c9-11ee-1d39-993be8726d5b
+# ╟─2bf8a538-be58-44a2-b230-8b8cdbaec438
+# ╠═af2bbf67-5e4d-4c54-8909-5652b9d39c36
+# ╠═3ace32c2-4f3e-4745-a9b7-05a9ff71a026
+# ╠═3e56ec4a-d663-4e8d-8b6a-684c457a87d4
+# ╠═be2ef4ff-1dde-427b-a4c4-dd0691e8b7e1
+# ╠═1868aceb-c57c-4c37-b73f-8aac1f08f75f
+# ╠═d96afc87-1fb4-4e75-8476-259f8f14df58
+# ╟─f0e8bfd3-0ae8-43f2-96c0-845785f29182
+# ╠═4976beda-db59-448c-9e0f-082b126fa4c5
+# ╠═20550512-e577-49d8-9cf2-9e514346c8e0
+# ╠═f4797506-9d1c-4615-bcc3-84886c34ab64
+# ╠═ccc3fc25-d29a-4fd0-8346-0cda7fa84062
+# ╠═371f5760-011f-4d6f-a4e9-59f81bdefcf4
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
